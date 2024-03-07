@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.appcompat.widget.LinearLayoutCompat xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:paddingTop="?attr/actionBarSize">
+
+    <Button
+        android:id="@+id/getRequestButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GET Request"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/postRequestButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="POST Request"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/putRequestButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PUT Request"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/deleteRequestButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="DELETE Request"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/postWithFilesRequestButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="POST with files Request"
+        android:textAllCaps="false" />
+</androidx.appcompat.widget.LinearLayoutCompat>
