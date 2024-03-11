@@ -15,6 +15,8 @@ import okhttp3.Callback
 import okhttp3.Response
 import java.io.File
 import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * NetworkRequestDelegate
@@ -64,7 +66,7 @@ class NetworkRequestDelegate(
      * @param callback: (NetworkResponse<T, E>) -> Unit
      * @return Unit
      */
-    inline fun <reified T, reified E> executeRequest(
+    suspend inline fun <reified T, reified E> executeRequest(
         /**
          * endPoint: String
          * The endpoint of the request
@@ -99,96 +101,89 @@ class NetworkRequestDelegate(
          * files: Map<String, File>
          * The files of the request
          */
-        files: Map<String, File> = emptyMap(),
-        /**
-         * callback: (NetworkResponse<T, E>) -> Unit
-         * The callback of the request
-         */
-        crossinline callback: (NetworkResponse<T, E>) -> Unit,
-    ) {
+        files: Map<String, File> = emptyMap()
+    ): NetworkResponse<T, E> {
+        return suspendCoroutine { continuation ->
+            okHttpClient.newCall(requestBuilder.url(endPoint) { putAll(queryParams) }
+                .headers { putAll(headers) }.method(method).body(contentType, body, files).build())
+                .enqueue(object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+                        /**
+                         * onFailure
+                         * This function is responsible for handling the failure of the request
+                         * @param call: Call
+                         * @param e: IOException
+                         * @return Unit
+                         */
+                        continuation.resume(NetworkResponse.Error(NetworkError.Exception(e)))
+                    }
 
-        okHttpClient.newCall(
-            requestBuilder
-            .url(endPoint) { putAll(queryParams) }
-            .headers { putAll(headers) }
-            .method(method)
-            .body(contentType, body, files)
-            .build()).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                /**
-                 * onFailure
-                 * This function is responsible for handling the failure of the request
-                 * @param call: Call
-                 * @param e: IOException
-                 * @return Unit
-                 */
-                callback(NetworkResponse.Error(NetworkError.Exception(e)))
-            }
+                    override fun onResponse(call: Call, response: Response) {
+                        response.use {
+                            val responseBody = it.body?.string()
 
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    val responseBody = it.body?.string()
+                            /**
+                             * !response.isSuccessful
+                             * in this case, the response is not successful
+                             * so we need to handle the error
+                             * hence we return a NetworkResponse.Error
+                             * after parsing the error
+                             * to the passed error model *E*
+                             * and passing it to the callback
+                             * if parsing failed
+                             * we return a NetworkResponse.Error
+                             */
+                            if (!response.isSuccessful) {
+                                val error = try {
+                                    val errorModel: E =
+                                        gson.fromJson(responseBody, object : TypeToken<E>() {}.type)
+                                    NetworkResponse.Error(
+                                        NetworkError.CustomServerError(response.code), errorModel
+                                    )
+                                } catch (e: JsonSyntaxException) {
+                                    NetworkResponse.Error(
+                                        NetworkErrorMapper.fromStatusCode(response.code)
+                                    )
+                                }
+                                continuation.resume(error)
+                                return
+                            }
 
+                            /**
+                             * responseBody == null
+                             * in this case, the response body is null
+                             * so we need to handle the error
+                             * hence we return a NetworkResponse.Error
+                             */
+                            if (responseBody == null) {
+                                continuation.resume(
+                                    NetworkResponse.Error(
+                                        NetworkError.Exception(RuntimeException("Response body is null"))
+                                    )
+                                )
+                                return
+                            }
 
-                    /**
-                     * !response.isSuccessful
-                     * in this case, the response is not successful
-                     * so we need to handle the error
-                     * hence we return a NetworkResponse.Error
-                     * after parsing the error
-                     * to the passed error model *E*
-                     * and passing it to the callback
-                     * if parsing failed
-                     * we return a NetworkResponse.Error
-                     */
-                    if (!response.isSuccessful) {
-                        val error = try {
-                            val errorModel: E =
-                                gson.fromJson(responseBody, object : TypeToken<E>() {}.type)
-                            NetworkResponse.Error(
-                                NetworkError.CustomServerError(response.code), errorModel
-                            )
-                        } catch (e: JsonSyntaxException) {
-                            NetworkResponse.Error(
-                                NetworkErrorMapper.fromStatusCode(response.code)
-                            )
+                            /**
+                             * response.isSuccessful == true
+                             * in this case, the response is successful
+                             * so we need to parse the response
+                             * to the passed model *T*
+                             * and passing it to the callback
+                             * if parsing failed failed
+                             * we return a NetworkResponse.Error
+                             */
+                            try {
+                                val result =
+                                    gson.fromJson<T>(responseBody, object : TypeToken<T>() {}.type)
+                                continuation.resume(NetworkResponse.Success(result))
+                            } catch (e: JsonSyntaxException) {
+                                continuation.resume(NetworkResponse.Error(NetworkError.Exception(e)))
+                            }
                         }
-                        callback(error)
-                        return
                     }
-
-                    /**
-                     * responseBody == null
-                     * in this case, the response body is null
-                     * so we need to handle the error
-                     * hence we return a NetworkResponse.Error
-                     */
-                    if (responseBody == null) {
-                        callback(
-                            NetworkResponse.Error(
-                                NetworkError.Exception(RuntimeException("Response body is null"))
-                            )
-                        )
-                        return
-                    }
-
-                    /**
-                     * response.isSuccessful == true
-                     * in this case, the response is successful
-                     * so we need to parse the response
-                     * to the passed model *T*
-                     * and passing it to the callback
-                     * if parsing failed failed
-                     * we return a NetworkResponse.Error
-                     */
-                    try {
-                        val result = gson.fromJson<T>(responseBody, object : TypeToken<T>() {}.type)
-                        callback(NetworkResponse.Success(result))
-                    } catch (e: JsonSyntaxException) {
-                        callback(NetworkResponse.Error(NetworkError.Exception(e)))
-                    }
-                }
-            }
-        })
+                })
+        }
     }
+
 }
