@@ -7,7 +7,7 @@ package com.blabs.blabsnetwork.enums
  * @constructor
  */
 enum class HttpMethod(private val methodName: String) {
-    GET("GET"), POST("POST"), PUT("PUT"), DELETE("DELETE")
+    GET("GET"), POST("POST"), PUT("PUT"), DELETE("DELETE"), PATCH("PATCH")
 }
 
 /**
@@ -17,9 +17,7 @@ enum class HttpMethod(private val methodName: String) {
  * @constructor
  */
 enum class ContentType(val mediaType: String) {
-    JSON("application/json; charset=utf-8"),
-    FORM("application/x-www-form-urlencoded; charset=utf-8"),
-    MULTIPART(
+    JSON("application/json; charset=utf-8"), FORM("application/x-www-form-urlencoded; charset=utf-8"), MULTIPART(
         "multipart/form-data; charset=utf-8"
     ),
 }

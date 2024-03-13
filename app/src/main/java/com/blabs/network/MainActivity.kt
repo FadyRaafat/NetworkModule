@@ -152,4 +152,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun examplePatchRequest() = lifecycleScope.launch {
+        val response = networkRequestDelegate.executeRequest<Item, ErrorModel>(
+            endPoint = "/patch",
+            method = HttpMethod.PATCH,
+            contentType = ContentType.JSON,
+            headers = mapOf(Headers.AUTHORIZATION.value to "your token"),
+            body = mapOf("id" to 1),
+        )
+        when (response) {
+            is NetworkResponse.Success -> {}
+            is NetworkResponse.Error -> {
+                when (response.networkError) {
+                    is NetworkError.CustomServerError -> {}
+                    else -> {}
+                }
+            }
+        }
+    }
+
 }
