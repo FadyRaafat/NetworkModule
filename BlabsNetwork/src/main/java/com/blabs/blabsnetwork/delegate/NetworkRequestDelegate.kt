@@ -1,25 +1,30 @@
 package com.blabs.blabsnetwork.delegate
 
+import android.content.Context
+import android.util.Log
 import com.blabs.blabsnetwork.enums.ContentType
 import com.blabs.blabsnetwork.enums.HttpMethod
+import com.blabs.blabsnetwork.request.RequestBuilder
 import com.blabs.blabsnetwork.response.NetworkError
 import com.blabs.blabsnetwork.response.error.NetworkErrorMapper
 import com.blabs.blabsnetwork.response.error.NetworkResponse
-import com.blabs.blabsnetwork.request.RequestBuilder
 import com.blabs.blabsnetwork.utils.provideGson
 import com.blabs.blabsnetwork.utils.provideOkHttpClient
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Response
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.Authenticator
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.CookieJar
+import okhttp3.Interceptor
+import okhttp3.Response
 
 /**
  * NetworkRequestDelegate
@@ -36,7 +41,12 @@ class NetworkRequestDelegate(
      * baseUrl: String
      * The base url of the network request
      */
-    private val baseUrl: String
+    private val baseUrl: String,
+    private val cookieJar: CookieJar? = null,
+    private val authenticator: Authenticator? = null,
+    private val interceptor: Interceptor? = null,
+    private val context: Context,
+    val basicHeaders: Map<String, String> = mapOf()
 ) {
     /**
      * Gson instance
@@ -48,7 +58,7 @@ class NetworkRequestDelegate(
      * OkHttpClient instance
      * @return OkHttpClient
      */
-    val okHttpClient by lazy { provideOkHttpClient() }
+    val okHttpClient by lazy { provideOkHttpClient(context, cookieJar, authenticator, interceptor) }
 
     /**
      * RequestBuilder instance
@@ -110,12 +120,14 @@ class NetworkRequestDelegate(
     ): NetworkResponse<T, E> {
         return suspendCoroutine { continuation ->
             okHttpClient.newCall(
-                requestBuilder.url(endPoint) { putAll(queryParams) }
-                    .headers { putAll(headers) }
+                requestBuilder
+                    .url(endPoint) { putAll(queryParams) }
+                    .headers { putAll(basicHeaders + headers) }
                     .method(method)
                     .body(contentType, body, files)
-                    .build())
-                .enqueue(object : Callback {
+                    .build()
+            ).enqueue(
+                object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         /**
                          * onFailure
@@ -153,6 +165,7 @@ class NetworkRequestDelegate(
                                             errorModel
                                         )
                                     } catch (e: JsonSyntaxException) {
+                                        Log.e("NetworkRequestDelegate", e.stackTraceToString())
                                         NetworkResponse.Error(
                                             NetworkErrorMapper.fromStatusCode(response.code)
                                         )
@@ -187,24 +200,21 @@ class NetworkRequestDelegate(
                                  */
                                 try {
                                     val result = gson.fromJson<T>(
-                                        responseBody, object : TypeToken<T>() {}.type
+                                        responseBody,
+                                        object : TypeToken<T>() {}.type
                                     )
                                     continuation.resume(NetworkResponse.Success(result))
                                 } catch (e: JsonSyntaxException) {
+                                    Log.e("NetworkRequestDelegate", e.stackTraceToString())
                                     continuation.resume(
-                                        NetworkResponse.Error(
-                                            NetworkError.Exception(
-                                                e
-                                            )
-                                        )
+                                        NetworkResponse.Error(NetworkError.Exception(e))
                                     )
                                 }
                             }
                         }
                     }
-                })
+                }
+            )
         }
     }
-
-
 }
