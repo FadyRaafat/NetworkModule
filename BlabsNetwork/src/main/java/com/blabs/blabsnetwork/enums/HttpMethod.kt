@@ -29,9 +29,12 @@ enum class ContentType(val mediaType: String) {
  * @constructor
  */
 enum class Headers(val value: String) {
-    AUTHORIZATION("Authorization"), CONTENT_TYPE("Content-Type"), ACCEPT("Accept"), APPLICATION_JSON(
-        "application/json"
-    ),
+    AUTHORIZATION("Authorization"),
+    CONTENT_TYPE("Content-Type"),
+    ACCEPT("Accept"),
+    APPLICATION_JSON("application/json"),
+    ACCEPT_LANGUAGE("Accept-Language"),
+    SET_COOKIE("Set-Cookie")
 }
 
 /**
