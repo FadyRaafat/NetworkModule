@@ -13,13 +13,13 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * NetworkRequestDelegate
@@ -108,14 +108,13 @@ class NetworkRequestDelegate(
          */
         files: Map<String, File> = emptyMap()
     ): NetworkResponse<T, E> {
-        return suspendCoroutine { continuation ->
-            okHttpClient.newCall(
-                requestBuilder.url(endPoint) { putAll(queryParams) }
-                    .headers { putAll(headers) }
-                    .method(method)
-                    .body(contentType, body, files)
-                    .build())
-                .enqueue(object : Callback {
+        return suspendCancellableCoroutine { continuation ->
+            val networkRequest= okHttpClient.newCall(requestBuilder.url(endPoint) { putAll(queryParams) }
+                .headers { putAll(headers) }
+                .method(method)
+                .body(contentType, body, files)
+                .build())
+            networkRequest.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         /**
                          * onFailure
@@ -203,6 +202,7 @@ class NetworkRequestDelegate(
                         }
                     }
                 })
+            continuation.invokeOnCancellation { networkRequest.cancel() }
         }
     }
 
