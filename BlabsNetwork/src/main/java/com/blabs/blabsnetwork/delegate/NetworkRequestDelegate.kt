@@ -15,10 +15,10 @@ import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Authenticator
 import okhttp3.Call
 import okhttp3.Callback
@@ -118,15 +118,16 @@ class NetworkRequestDelegate(
          */
         files: Map<String, File> = emptyMap()
     ): NetworkResponse<T, E> {
-        return suspendCoroutine { continuation ->
-            okHttpClient.newCall(
+        return suspendCancellableCoroutine { continuation ->
+            val networkRequest = okHttpClient.newCall(
                 requestBuilder
                     .url(endPoint) { putAll(queryParams) }
                     .headers { putAll(basicHeaders + headers) }
                     .method(method)
                     .body(contentType, body, files)
                     .build()
-            ).enqueue(
+            )
+            networkRequest.enqueue(
                 object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         /**
@@ -158,7 +159,8 @@ class NetworkRequestDelegate(
                                 if (!response.isSuccessful) {
                                     val error = try {
                                         val errorModel: E = gson.fromJson(
-                                            responseBody, object : TypeToken<E>() {}.type
+                                            responseBody,
+                                            object : TypeToken<E>() {}.type
                                         )
                                         NetworkResponse.Error(
                                             NetworkError.CustomServerError(response.code),
@@ -215,6 +217,7 @@ class NetworkRequestDelegate(
                     }
                 }
             )
+            continuation.invokeOnCancellation { networkRequest.cancel() }
         }
     }
 }
