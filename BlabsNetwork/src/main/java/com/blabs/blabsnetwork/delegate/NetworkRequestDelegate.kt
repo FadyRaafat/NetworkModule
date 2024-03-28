@@ -45,8 +45,7 @@ class NetworkRequestDelegate(
     private val cookieJar: CookieJar? = null,
     private val authenticator: Authenticator? = null,
     private val interceptor: Interceptor? = null,
-    private val context: Context,
-    val basicHeaders: Map<String, String> = mapOf()
+    private val context: Context
 ) {
     /**
      * Gson instance
@@ -122,7 +121,14 @@ class NetworkRequestDelegate(
             val networkRequest = okHttpClient.newCall(
                 requestBuilder
                     .url(endPoint) { putAll(queryParams) }
-                    .headers { putAll(basicHeaders + headers) }
+                    .headers {
+                        putAll(
+                            headers.apply {
+                                putIfAbsent("Content-Type", contentType.mediaType)
+                                putIfAbsent("Accept", contentType.mediaType)
+                            }
+                        )
+                    }
                     .method(method)
                     .body(contentType, body, files)
                     .build()
