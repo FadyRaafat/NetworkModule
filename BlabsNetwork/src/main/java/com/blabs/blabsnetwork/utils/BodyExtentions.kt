@@ -2,12 +2,12 @@ package com.blabs.blabsnetwork.utils
 
 import com.blabs.blabsnetwork.enums.ContentType
 import com.google.gson.Gson
+import java.io.File
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
 
 /**
  * toJsonRequestBody
@@ -31,7 +31,6 @@ fun Map<String, File>.toMultipartRequestBody(): RequestBody =
         }
     }.build()
 
-
 /**
  * combineFilesAndBody
  * This function is responsible for combining files and body
@@ -41,7 +40,7 @@ fun Map<String, File>.toMultipartRequestBody(): RequestBody =
  */
 fun combineFilesAndBody(
     files: Map<String, File>,
-    body: Map<String, Any>,
+    body: Map<String, Any>
 ): MultipartBody {
     val multipartBodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
     body.forEach { (key, value) ->

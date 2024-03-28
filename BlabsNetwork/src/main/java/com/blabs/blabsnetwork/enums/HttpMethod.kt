@@ -17,9 +17,9 @@ enum class HttpMethod(private val methodName: String) {
  * @constructor
  */
 enum class ContentType(val mediaType: String) {
-    JSON("application/json; charset=utf-8"), FORM("application/x-www-form-urlencoded; charset=utf-8"), MULTIPART(
-        "multipart/form-data; charset=utf-8"
-    ),
+    JSON("application/json; charset=utf-8"),
+    FORM("application/x-www-form-urlencoded; charset=utf-8"),
+    MULTIPART("multipart/form-data; charset=utf-8")
 }
 
 /**
@@ -29,9 +29,12 @@ enum class ContentType(val mediaType: String) {
  * @constructor
  */
 enum class Headers(val value: String) {
-    AUTHORIZATION("Authorization"), CONTENT_TYPE("Content-Type"), ACCEPT("Accept"), APPLICATION_JSON(
-        "application/json"
-    ),
+    AUTHORIZATION("Authorization"),
+    CONTENT_TYPE("Content-Type"),
+    ACCEPT("Accept"),
+    APPLICATION_JSON("application/json"),
+    ACCEPT_LANGUAGE("Accept-Language"),
+    SET_COOKIE("Set-Cookie")
 }
 
 /**
