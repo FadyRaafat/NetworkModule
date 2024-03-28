@@ -3,6 +3,7 @@ package com.blabs.blabsnetwork.delegate
 import android.content.Context
 import android.util.Log
 import com.blabs.blabsnetwork.enums.ContentType
+import com.blabs.blabsnetwork.enums.Headers
 import com.blabs.blabsnetwork.enums.HttpMethod
 import com.blabs.blabsnetwork.request.RequestBuilder
 import com.blabs.blabsnetwork.response.NetworkError
@@ -124,8 +125,8 @@ class NetworkRequestDelegate(
                     .headers {
                         putAll(
                             headers.apply {
-                                putIfAbsent("Content-Type", contentType.mediaType)
-                                putIfAbsent("Accept", contentType.mediaType)
+                                putIfAbsent(Headers.CONTENT_TYPE.value, contentType.mediaType)
+                                putIfAbsent(Headers.ACCEPT.value, contentType.mediaType)
                             }
                         )
                     }
