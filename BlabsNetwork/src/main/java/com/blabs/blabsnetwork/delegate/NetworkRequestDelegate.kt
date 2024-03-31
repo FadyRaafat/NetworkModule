@@ -1,7 +1,6 @@
 package com.blabs.blabsnetwork.delegate
 
 import android.content.Context
-import android.util.Log
 import com.blabs.blabsnetwork.enums.ContentType
 import com.blabs.blabsnetwork.enums.Headers
 import com.blabs.blabsnetwork.enums.HttpMethod
@@ -26,6 +25,7 @@ import okhttp3.Callback
 import okhttp3.CookieJar
 import okhttp3.Interceptor
 import okhttp3.Response
+import timber.log.Timber
 
 /**
  * NetworkRequestDelegate
@@ -174,7 +174,7 @@ class NetworkRequestDelegate(
                                             errorModel
                                         )
                                     } catch (e: JsonSyntaxException) {
-                                        Log.e("NetworkRequestDelegate", e.stackTraceToString())
+                                        Timber.e(e.stackTraceToString())
                                         NetworkResponse.Error(
                                             NetworkErrorMapper.fromStatusCode(response.code)
                                         )
@@ -214,7 +214,7 @@ class NetworkRequestDelegate(
                                     )
                                     continuation.resume(NetworkResponse.Success(result))
                                 } catch (e: JsonSyntaxException) {
-                                    Log.e("NetworkRequestDelegate", e.stackTraceToString())
+                                    Timber.e(e.stackTraceToString())
                                     continuation.resume(
                                         NetworkResponse.Error(NetworkError.Exception(e))
                                     )
