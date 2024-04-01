@@ -6,11 +6,11 @@ import com.blabs.blabsnetwork.utils.combineFilesAndBody
 import com.blabs.blabsnetwork.utils.toJsonRequestBody
 import com.blabs.blabsnetwork.utils.toMultipartRequestBody
 import com.google.gson.Gson
+import java.io.File
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import okhttp3.RequestBody
-import java.io.File
 
 /**
  * RequestBuilder
@@ -53,7 +53,8 @@ class RequestBuilder(private val baseUrl: String, private val gson: Gson) : IReq
      * @return IRequestBuilder
      */
     override fun url(
-        endPoint: String, queryParams: MutableMap<String, String>.() -> Unit
+        endPoint: String,
+        queryParams: MutableMap<String, String>.() -> Unit
     ): IRequestBuilder {
         val queryParamsMap = mutableMapOf<String, String>().apply(queryParams)
         this.url = baseUrl.toHttpUrlOrNull()?.newBuilder()?.apply {
@@ -94,7 +95,9 @@ class RequestBuilder(private val baseUrl: String, private val gson: Gson) : IReq
      * @return IRequestBuilder
      */
     override fun body(
-        contentType: ContentType, body: Map<String, Any>, files: Map<String, File>
+        contentType: ContentType,
+        body: Map<String, Any>,
+        files: Map<String, File>
     ): IRequestBuilder {
         requestBody = when {
             body.isNotEmpty() && files.isNotEmpty() -> combineFilesAndBody(files, body)
@@ -115,7 +118,4 @@ class RequestBuilder(private val baseUrl: String, private val gson: Gson) : IReq
             headersMap.forEach { (key, value) -> addHeader(key, value) }
         }.build()
     }
-
 }
-
-

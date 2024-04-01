@@ -2,8 +2,8 @@ package com.blabs.blabsnetwork.request
 
 import com.blabs.blabsnetwork.enums.ContentType
 import com.blabs.blabsnetwork.enums.HttpMethod
-import okhttp3.Request
 import java.io.File
+import okhttp3.Request
 
 /**
  * IRequestBuilder
@@ -17,10 +17,10 @@ interface IRequestBuilder {
     fun headers(headers: MutableMap<String, String>.() -> Unit = {}): IRequestBuilder
 
     fun body(
-        contentType: ContentType = ContentType.JSON, body: Map<String, Any> , files: Map<String, File>
+        contentType: ContentType = ContentType.JSON,
+        body: Map<String, Any>,
+        files: Map<String, File>
     ): IRequestBuilder
 
-
     fun build(): Request
-
 }

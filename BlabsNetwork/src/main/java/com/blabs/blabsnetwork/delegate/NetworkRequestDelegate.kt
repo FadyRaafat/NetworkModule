@@ -1,25 +1,31 @@
 package com.blabs.blabsnetwork.delegate
 
+import android.content.Context
 import com.blabs.blabsnetwork.enums.ContentType
+import com.blabs.blabsnetwork.enums.Headers
 import com.blabs.blabsnetwork.enums.HttpMethod
+import com.blabs.blabsnetwork.request.RequestBuilder
 import com.blabs.blabsnetwork.response.NetworkError
 import com.blabs.blabsnetwork.response.error.NetworkErrorMapper
 import com.blabs.blabsnetwork.response.error.NetworkResponse
-import com.blabs.blabsnetwork.request.RequestBuilder
 import com.blabs.blabsnetwork.utils.provideGson
 import com.blabs.blabsnetwork.utils.provideOkHttpClient
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
+import java.io.File
+import java.io.IOException
+import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.Authenticator
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.CookieJar
+import okhttp3.Interceptor
 import okhttp3.Response
-import java.io.File
-import java.io.IOException
-import kotlin.coroutines.resume
+import timber.log.Timber
 
 /**
  * NetworkRequestDelegate
@@ -36,7 +42,11 @@ class NetworkRequestDelegate(
      * baseUrl: String
      * The base url of the network request
      */
-    private val baseUrl: String
+    private val baseUrl: String,
+    private val cookieJar: CookieJar? = null,
+    private val authenticator: Authenticator? = null,
+    private val interceptor: Interceptor? = null,
+    private val context: Context
 ) {
     /**
      * Gson instance
@@ -48,7 +58,7 @@ class NetworkRequestDelegate(
      * OkHttpClient instance
      * @return OkHttpClient
      */
-    val okHttpClient by lazy { provideOkHttpClient() }
+    val okHttpClient by lazy { provideOkHttpClient(context, cookieJar, authenticator, interceptor) }
 
     /**
      * RequestBuilder instance
@@ -109,12 +119,23 @@ class NetworkRequestDelegate(
         files: Map<String, File> = emptyMap()
     ): NetworkResponse<T, E> {
         return suspendCancellableCoroutine { continuation ->
-            val networkRequest= okHttpClient.newCall(requestBuilder.url(endPoint) { putAll(queryParams) }
-                .headers { putAll(headers) }
-                .method(method)
-                .body(contentType, body, files)
-                .build())
-            networkRequest.enqueue(object : Callback {
+            val networkRequest = okHttpClient.newCall(
+                requestBuilder
+                    .url(endPoint) { putAll(queryParams) }
+                    .headers {
+                        putAll(
+                            headers.apply {
+                                putIfAbsent(Headers.CONTENT_TYPE.value, contentType.mediaType)
+                                putIfAbsent(Headers.ACCEPT.value, contentType.mediaType)
+                            }
+                        )
+                    }
+                    .method(method)
+                    .body(contentType, body, files)
+                    .build()
+            )
+            networkRequest.enqueue(
+                object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
                         /**
                          * onFailure
@@ -145,13 +166,15 @@ class NetworkRequestDelegate(
                                 if (!response.isSuccessful) {
                                     val error = try {
                                         val errorModel: E = gson.fromJson(
-                                            responseBody, object : TypeToken<E>() {}.type
+                                            responseBody,
+                                            object : TypeToken<E>() {}.type
                                         )
                                         NetworkResponse.Error(
                                             NetworkError.CustomServerError(response.code),
                                             errorModel
                                         )
                                     } catch (e: JsonSyntaxException) {
+                                        Timber.e(e.stackTraceToString())
                                         NetworkResponse.Error(
                                             NetworkErrorMapper.fromStatusCode(response.code)
                                         )
@@ -186,25 +209,22 @@ class NetworkRequestDelegate(
                                  */
                                 try {
                                     val result = gson.fromJson<T>(
-                                        responseBody, object : TypeToken<T>() {}.type
+                                        responseBody,
+                                        object : TypeToken<T>() {}.type
                                     )
                                     continuation.resume(NetworkResponse.Success(result))
                                 } catch (e: JsonSyntaxException) {
+                                    Timber.e(e.stackTraceToString())
                                     continuation.resume(
-                                        NetworkResponse.Error(
-                                            NetworkError.Exception(
-                                                e
-                                            )
-                                        )
+                                        NetworkResponse.Error(NetworkError.Exception(e))
                                     )
                                 }
                             }
                         }
                     }
-                })
+                }
+            )
             continuation.invokeOnCancellation { networkRequest.cancel() }
         }
     }
-
-
 }

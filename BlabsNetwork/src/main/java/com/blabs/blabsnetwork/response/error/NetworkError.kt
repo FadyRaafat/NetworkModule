@@ -14,4 +14,3 @@ sealed class NetworkResponse<out T, out E> {
     data class Error<out E>(val networkError: NetworkError, val error: E? = null) :
         NetworkResponse<Nothing, E>()
 }
-

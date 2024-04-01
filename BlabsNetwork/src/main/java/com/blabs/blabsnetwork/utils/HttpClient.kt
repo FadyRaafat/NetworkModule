@@ -1,24 +1,45 @@
 package com.blabs.blabsnetwork.utils
 
+import android.content.Context
 import com.blabs.blabsnetwork.enums.BuilderParams
+import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import java.util.concurrent.TimeUnit
+import okhttp3.Authenticator
+import okhttp3.CookieJar
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import java.util.concurrent.TimeUnit
 
 /**
  * provideOkHttpClient
  * This function is responsible for providing okHttpClient
  * @return OkHttpClient
  */
-fun provideOkHttpClient() =
-    OkHttpClient.Builder().readTimeout(BuilderParams.REQUEST_TIME_OUT.value, TimeUnit.MINUTES)
-        .connectTimeout(BuilderParams.REQUEST_TIME_OUT.value, TimeUnit.MINUTES)
-        .addInterceptor(provideLoggingInterceptor())
-        .addNetworkInterceptor(provideHttpLoggingInterceptor()).build()
-
+fun provideOkHttpClient(
+    context: Context,
+    cookieJar: CookieJar? = null,
+    authenticator: Authenticator? = null,
+    interceptor: Interceptor? = null
+) = OkHttpClient
+    .Builder()
+    .readTimeout(BuilderParams.REQUEST_TIME_OUT.value, TimeUnit.MINUTES)
+    .connectTimeout(BuilderParams.REQUEST_TIME_OUT.value, TimeUnit.MINUTES)
+    .addInterceptor(ChuckerInterceptor(context = context))
+    .addInterceptor(provideLoggingInterceptor())
+    .addNetworkInterceptor(provideHttpLoggingInterceptor())
+    .apply {
+        cookieJar?.let {
+            cookieJar((it))
+        }
+        interceptor?.let {
+            addInterceptor(it)
+        }
+        authenticator?.let {
+            authenticator(it)
+        }
+    }.build()
 
 /**
  * provideHttpLoggingInterceptor
@@ -52,4 +73,3 @@ fun provideLoggingInterceptor(): Interceptor = Interceptor { chain ->
 fun provideGson(): Gson {
     return GsonBuilder().setLenient().serializeNulls().create()
 }
-
